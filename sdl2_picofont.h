@@ -9,7 +9,7 @@
 #include <SDL2/SDL.h>
 
 #define FONT_CHAR_WIDTH		6
-#define FONT_CHAR_HEIGHT	6
+#define FONT_CHAR_HEIGHT	5
 
 /**
  * Context required to store the generated texture with the given renderer.
@@ -38,9 +38,13 @@ void FontPrint(SDL_Renderer *rend, SDL_Texture *font_tex,
                const Uint8 width_scale, const Uint8 height_scale);
 
 int FontPrintToRenderer(font_ctx *const ctx, const char *text, int x, int y,
-	const Uint8 width_scale, const Uint8 height_scale);
+			const Uint8 width_scale, const Uint8 height_scale,
+			const SDL_Colour colour);
 
 SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
+				 int *w, int *h);
+
+SDL_Texture *FontRenderToTexture(font_ctx *const ctx, const char *text,
 				 int *w, int *h);
 
 /**

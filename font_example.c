@@ -1,62 +1,103 @@
 #include <SDL2/SDL.h>
+#include <time.h>
 #include "sdl2_picofont.h"
 
-/* Colours in ARGB8888 format. */
-#define COLOUR_WHITE		0xFFFFFFFF
-#define COLOUR_GREEN	 	0xFF00FF00
-#define COLOUR_TRANSPARENT 	0x00000000
-
-#define CHK(x)	if(x) {					\
+#define CHK(x)	if(!(x)) {					\
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,	\
 			"%s:%d: %s", __func__, __LINE__, SDL_GetError()); \
 		exit(EXIT_FAILURE);				\
 		}
 
-int main(int argc, char *argv[])
+#define WIN_WIDTH	320
+#define WIN_HEIGHT	240
+
+int main(void)
 {
 	SDL_Window *win;
 	SDL_Renderer *rend;
-	SDL_Texture *font;
+	font_ctx *ctx;
+	const SDL_Colour blue = { .r = 0x00, .g = 0x00, .b = 0xFF, .a = 0x00 };
+	SDL_Texture *tex;
 
-	(void) argc;
-	(void) argv;
+	CHK(SDL_Init(SDL_INIT_VIDEO) == 0);
+	CHK(SDL_CreateWindowAndRenderer(WIN_WIDTH, WIN_HEIGHT,
+					SDL_WINDOW_RESIZABLE, &win, &rend) == 0);
+	CHK((ctx = FontStartup(rend)) != NULL);
 
-	CHK(SDL_Init(SDL_INIT_VIDEO) != 0);
-	CHK(SDL_CreateWindowAndRenderer(320, 240, 0,
-	                            &win, &rend) != 0);
-
-	/* Use integer scale. */
-	SDL_RenderSetLogicalSize(rend, 320, 240);
+	SDL_RenderSetLogicalSize(rend, WIN_WIDTH, WIN_HEIGHT);
 	SDL_RenderSetIntegerScale(rend, 1);
 
-	font_ctx *ctx = FontStartup(rend);
-	CHK(ctx == NULL);
+	int tex_w, tex_h;
+	CHK((tex = FontRenderToTexture(ctx, "I'm a texture!", &tex_w, &tex_h)) != NULL);
 
-	int ret = FontPrintToRenderer(ctx, "Hello World!", 0, 0, 2, 5);
-	CHK(ret < 0);
+	tex_w *= 2;
+	tex_h *= 2;
+	SDL_Event e;
+	unsigned run = 1;
+	SDL_Rect dest_rect = { .x = 0, .y = 0, .w = tex_w, .h = tex_h};
+	SDL_Colour colour[7] =
+	{
+		{ .r = 0xFF, .g = 0x00, .b = 0x00 },
+		{ .r = 0xFF, .g = 0xA5, .b = 0x00 },
+		{ .r = 0xFF, .g = 0xFF, .b = 0x00 },
+		{ .r = 0x00, .g = 0x80, .b = 0x00 },
+		{ .r = 0xFF, .g = 0x00, .b = 0xFF },
+		{ .r = 0x4B, .g = 0x00, .b = 0x82 },
+		{ .r = 0xEE, .g = 0x82, .b = 0xEE }
+	};
+	Uint8 r = 0, g = 0x0F, b = 0xF0;
+	Uint8 dir_x = 1, dir_y = 1;
+	Uint8 colour_sel = 0;
+	srand(time(NULL));
+	Uint8 step_x = (rand() % 4) + 1;
+	Uint8 step_y = (rand() % 4) + 1;
 
-	SDL_Rect dst = { .x = 50, .y = 100 };
-	SDL_Surface *surf = FontRenderToSurface(ctx, "0123456789", &dst.w, &dst.h);
-	CHK(surf == NULL);
+	while(run)
+	{
+		SDL_RenderClear(rend);
 
-	SDL_Texture *surf_tex = SDL_CreateTextureFromSurface(rend, surf);
-	CHK(surf_tex == NULL);
+		CHK(FontPrintToRenderer(ctx, "Hello World!",
+					100, 0, 2, 5, blue) == 0);
 
-	SDL_SetTextureColorMod(surf_tex, 0x00, 0xFF, 0x00);
-	//SDL_RenderCopyEx(rend, surf_tex, NULL, &dst, 30.0, NULL, SDL_FLIP_NONE);
+		while(SDL_PollEvent(&e) != 0)
+		{
+			if(e.type == SDL_QUIT)
+				run = 0;
+		}
 
+		if(dest_rect.y % 30 == 0)
+		{
+			colour_sel++;
+			colour_sel &= 0b111;
+		}
 
-	SDL_RenderCopy(rend, surf_tex, NULL, NULL);
+		dest_rect.x += dir_x ? step_x : -(step_x);
+		dest_rect.y += dir_y ? step_y : -(step_y);
 
-#if 0
-	FontPrint(&white, "Hello World!", 0, 0, 2, 2);
-	FontPrint(&white, "You can print me anywhere.", 10, 90, 2, 3);
-	FontPrint(&green, "little green", 0, 160, 1, 1);
-	FontPrint(&green, "BIG GREEN", 80, 170, 4, 12);
-#endif
-	SDL_RenderPresent(rend);
+		if(dest_rect.x >= (WIN_WIDTH - tex_w) || dest_rect.x <= 0)
+		{
+			step_x = (rand() % 4) + 1;
+			dest_rect.x = dir_x ? (WIN_WIDTH - tex_w) : 0;
+			dir_x = !dir_x;
+		}
 
-	SDL_Delay(10000);
+		if(dest_rect.y >= (WIN_HEIGHT - tex_h) || dest_rect.y <= 0)
+		{
+			step_y = (rand() % 4) + 1;
+			dest_rect.y = dir_y ? (WIN_HEIGHT - tex_h) : 0;
+			dir_y = !dir_y;
+		}
+
+		SDL_SetTextureColorMod(tex,
+		                       colour[colour_sel].r,
+		                       colour[colour_sel].g,
+		                       colour[colour_sel].b);
+		SDL_RenderCopy(rend, tex, NULL, &dest_rect);
+		SDL_RenderPresent(rend);
+		SDL_Delay(15);
+	}
+
+	FontExit(ctx);
 	SDL_DestroyRenderer(rend);
 	SDL_DestroyWindow(win);
 	SDL_Quit();
