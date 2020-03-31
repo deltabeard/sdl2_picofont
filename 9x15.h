@@ -1,3 +1,7 @@
+/**
+ * LICENSE: Public domain font. Share and enjoy.
+ */
+
 #pragma once
 
 #define FONT_CHAR_WIDTH		9

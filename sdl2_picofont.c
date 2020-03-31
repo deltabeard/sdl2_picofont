@@ -7,12 +7,13 @@
 
 #include "sdl2_picofont.h"
 
-#if PICOFONT_SELECTION == PICOFONT_9x15
+#if defined(PICOFONT_5x8)
+#include "5x8.h"
+#elif defined(PICOFONT_9x15)
 #include "9x15.h"
-#elif PICOFONT_SELECTION == PICOFONT_6x5
-#include "6x5.h"
 #else
-#error "No font was selected."
+#include "9x15.h"
+#warning "No font specified. Using 9x15 font by default."
 #endif
 
 struct font_ctx_s
@@ -37,7 +38,7 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 	if(ctx == NULL || pixels == NULL)
 	{
 		SDL_SetError("Unable to allocate memory.");
-		goto out;
+		goto err;
 	}
 
 	memcpy(pixels, bitmap_font, FONT_BITMAP_SIZE);
@@ -63,24 +64,27 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 	/**
 	 * Converting to native format used by textures as there is a bug in
 	 * SDL2 whereby 1bpp palette surfaces can not be blitted to ARGB8888
-	 * surfaces.
+	 * surfaces properly.
 	 */
 	ctx->surf = SDL_ConvertSurfaceFormat(bmp_surf, tex_format, 0);
-	free(pixels);
-	pixels = NULL;
-	SDL_FreeSurface(bmp_surf);
 	if(ctx->surf == NULL)
+	{
+		SDL_DestroyTexture(ctx->tex);
+		SDL_FreeSurface(bmp_surf);
 		goto err;
+	}
 
-	SDL_SetColorKey(ctx->surf, SDL_TRUE, 0);
+	SDL_SetColorKey(ctx->surf, SDL_TRUE, 0x000000);
 	SDL_UnlockSurface(ctx->surf);
 	ctx->rend = renderer;
 
+	SDL_FreeSurface(bmp_surf);
+
 out:
+	free(pixels);
 	return ctx;
 
 err:
-	free(pixels);
 	free(ctx);
 	ctx = NULL;
 	goto out;

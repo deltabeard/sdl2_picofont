@@ -10,13 +10,8 @@
 /**
  * Font to be selected at compile time. Options are:
  * PICOFONT_9x15 (default)
- * PICOFONT_6x5
+ * PICOFONT_5x8
  */
-#define PICOFONT_9x15	0
-#define PICOFONT_6x5	1
-
-#define PICOFONT_SELECTION PICOFONT_9x15
-//#define PICOFONT_SELECTION PICOFONT_5x6
 
 /**
  * Context required to store the generated texture with the given renderer.
