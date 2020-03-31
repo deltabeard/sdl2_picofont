@@ -13,8 +13,6 @@ int main(void)
 	SDL_Window *win;
 	SDL_Renderer *rend;
 	font_ctx *ctx;
-	SDL_Texture *tex;
-
 
 	CHK(SDL_Init(SDL_INIT_VIDEO) == 0);
 	CHK(SDL_CreateWindowAndRenderer(320, 240,

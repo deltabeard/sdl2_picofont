@@ -7,6 +7,15 @@
 
 #include "sdl2_picofont.h"
 
+/**
+ * You may want to define the fallback format as SDL_PIXELFORMAT_RGB565 for low
+ * power hardware. Although this will format will only be used if
+ * SDL_QueryTexture() fails for some reason (which is unlikely).
+ */
+#ifndef PICOFONT_FALLBACK_FORMAT
+#define PICOFONT_FALLBACK_FORMAT SDL_PIXELFORMAT_ARGB8888
+#endif
+
 #if defined(PICOFONT_5x8)
 #include "5x8.h"
 #elif defined(PICOFONT_9x15)
@@ -21,6 +30,7 @@ struct font_ctx_s
 	SDL_Texture *tex;
 	SDL_Renderer *rend;
 	SDL_Surface *surf;
+	Uint32 format;
 };
 
 font_ctx *FontStartup(SDL_Renderer *renderer)
@@ -32,7 +42,6 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 	};
 	SDL_Surface *bmp_surf;
 	font_ctx *ctx = malloc(sizeof(font_ctx));
-	Uint32 tex_format;
 	Uint8 *pixels = malloc(FONT_BITMAP_SIZE);;
 
 	if(ctx == NULL || pixels == NULL)
@@ -59,14 +68,15 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 	if(ctx->tex == NULL)
 		goto err;
 
-	SDL_QueryTexture(ctx->tex, &tex_format, NULL, NULL, NULL);
+	if(SDL_QueryTexture(ctx->tex, &ctx->format, NULL, NULL, NULL) < 0)
+		ctx->format = PICOFONT_FALLBACK_FORMAT;
 
 	/**
 	 * Converting to native format used by textures as there is a bug in
 	 * SDL2 whereby 1bpp palette surfaces can not be blitted to ARGB8888
 	 * surfaces properly.
 	 */
-	ctx->surf = SDL_ConvertSurfaceFormat(bmp_surf, tex_format, 0);
+	ctx->surf = SDL_ConvertSurfaceFormat(bmp_surf, ctx->format, 0);
 	if(ctx->surf == NULL)
 	{
 		SDL_DestroyTexture(ctx->tex);
@@ -135,7 +145,6 @@ SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
 	int w_max;
 	SDL_Surface *render;
 	size_t len = strlen(text);
-	Uint32 tex_format;
 
 	SDL_assert(ctx != NULL);
 	SDL_assert(text != NULL);
@@ -149,16 +158,20 @@ SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
 	screen_rect.y = 0;
 
 	w_max = len * FONT_CHAR_WIDTH;
-
-	/* Get format used by textures, or fallback to ARGB888. */
-	if(SDL_QueryTexture(ctx->tex, &tex_format, NULL, NULL, NULL) < 0)
-		tex_format = SDL_PIXELFORMAT_ARGB8888;
+	/* Error if string is too long. */
+	if(w_max < 0)
+	{
+		SDL_SetError("Input string was too long.");
+		return NULL;
+	}
 
 	render = SDL_CreateRGBSurfaceWithFormat(0, w_max, FONT_CHAR_HEIGHT,
-						SDL_BITSPERPIXEL(tex_format),
-	                                        tex_format);
+						SDL_BITSPERPIXEL(ctx->format),
+	                                        ctx->format);
 	if(render == NULL)
 		return render;
+
+	SDL_SetColorKey(render, SDL_TRUE, 0x000000);
 
 	for(; *text; text++)
 	{

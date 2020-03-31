@@ -8,4 +8,4 @@ font_example_fancy:  font_example_fancy.c sdl2_picofont.o
 sdl2_picofont.o: sdl2_picofont.c sdl2_picofont.h
 
 clean:
-	$(RM) font_example
+	$(RM) font_example_basic font_example_fancy sdl2_picofont.o
