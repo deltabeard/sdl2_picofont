@@ -150,11 +150,12 @@ SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
 
 	w_max = len * FONT_CHAR_WIDTH;
 
+	/* Get format used by textures, or fallback to ARGB888. */
 	if(SDL_QueryTexture(ctx->tex, &tex_format, NULL, NULL, NULL) < 0)
 		tex_format = SDL_PIXELFORMAT_ARGB8888;
 
-	/* FIXME: get depth instead of setting it to 32 here. */
-	render = SDL_CreateRGBSurfaceWithFormat(0, w_max, FONT_CHAR_HEIGHT, 32,
+	render = SDL_CreateRGBSurfaceWithFormat(0, w_max, FONT_CHAR_HEIGHT,
+						SDL_BITSPERPIXEL(tex_format),
 	                                        tex_format);
 	if(render == NULL)
 		return render;
