@@ -59,23 +59,28 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 		goto err;
 
 	if(SDL_SetPaletteColors(bmp_surf->format->palette, colours, 0, 2) < 0)
+	{
+		SDL_FreeSurface(bmp_surf);
 		goto err;
+	}
 
-	SDL_UnlockSurface(bmp_surf);
-	SDL_SetColorKey(bmp_surf, SDL_TRUE, 0);
+	if(SDL_SetColorKey(bmp_surf, SDL_TRUE, 0) < 0)
+	{
+		SDL_FreeSurface(bmp_surf);
+		goto err;
+	}
 
 	ctx->tex = SDL_CreateTextureFromSurface(renderer, bmp_surf);
 	if(ctx->tex == NULL)
+	{
+		SDL_FreeSurface(bmp_surf);
 		goto err;
+	}
 
 	if(SDL_QueryTexture(ctx->tex, &ctx->format, NULL, NULL, NULL) < 0)
 		ctx->format = PICOFONT_FALLBACK_FORMAT;
 
-	/**
-	 * Converting to native format used by textures as there is a bug in
-	 * SDL2 whereby 1bpp palette surfaces can not be blitted to ARGB8888
-	 * surfaces properly.
-	 */
+	/* Converting to native format used by textures. */
 	ctx->surf = SDL_ConvertSurfaceFormat(bmp_surf, ctx->format, 0);
 	if(ctx->surf == NULL)
 	{

@@ -40,9 +40,6 @@ int main(void)
 		CHK(FontPrintToRenderer(ctx, "Stretch!",
 		                        100, 80, 2, 6, skyblue) == 0);
 
-		CHK(FontPrintToRenderer(ctx, "Stretch!",
-		                        100, 80, 2, 6, skyblue) == 0);
-
 		SDL_RenderPresent(rend);
 		SDL_Delay(15);
 	}
