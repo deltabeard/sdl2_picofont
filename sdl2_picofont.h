@@ -22,53 +22,33 @@ typedef struct font_ctx_s font_ctx;
  * Initialises font context with given renderer. Must be called first.
  * The given renderer must remain valid until after FontExit() is called.
  *
+ * \param renderer	Renderer of the window.
  * \return 0 on success, else error. Use SDL_GetError().
  */
 font_ctx *FontStartup(SDL_Renderer *renderer);
 
 /**
  * Prints a string to the SDL2 renderer.
+ * Use SDL_SetRenderDrawColor() to change the text colour.
+ * Use SDL_SetRenderTarget() to render to a texture instead.
  *
  * \param ctx	Font library context.
  * \param text	Text to print.
- * \param x	X co-ordinate to start printing text.
- * \param y	Y co-ordinate to start printing text.
- * \param width_scale	Width scale of font. Must be larger than 0.
- * \param height_scale	Height scale of font. Must be larger than 0.
- * \param colour Set text colour.
+ * \param dstscale	Location and scale of text. (0,0) x1 if NULL.
  * \return	0 on success, else error. Use SDL_GetError().
  */
-int FontPrintToRenderer(font_ctx *const ctx, const char *text, int x, int y,
-			const Uint8 width_scale, const Uint8 height_scale,
-			const SDL_Colour colour);
+int FontPrintToRenderer(font_ctx *const ctx, const char *text,
+			const SDL_Rect *dstscale);
 
 /**
- * Renders the given string to a surface.
+ * Expected size of texture/renderer required given the string length, assuming
+ * a scale of 1.
  *
- * \param ctx	Font library context.
- * \param text	Text to print.
- * \param w	If not NULL, the width of the created surface is stored in this
- * 		pointer.
- * \param h	If not NULL, the height of the created surface is stored in this
- * 		pointer.
- * \return	Rendered surface or NULL on error. Use SDL_GetError().
+ * \param text_len	Length of text.
+ * \param w		Pointer to store expected width.
+ * \param h		Pointer to store expected height.
  */
-SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
-				 int *w, int *h);
-
-/**
- * Renders the given string to a texture.
- *
- * \param ctx	Font library context.
- * \param text	Text to print.
- * \param w	If not NULL, the width of the created texture is stored in this
- * 		pointer.
- * \param h	If not NULL, the height of the created texture is stored in this
- * 		pointer.
- *  \return	Rendered texture or NULL on error. Use SDL_GetError().
- */
-SDL_Texture *FontRenderToTexture(font_ctx *const ctx, const char *text,
-				 int *w, int *h);
+void FontDrawSize(const size_t text_len, int *w, int *h);
 
 /**
  * Deletes font context.

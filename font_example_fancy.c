@@ -9,6 +9,13 @@
 		exit(EXIT_FAILURE);					\
 	}
 
+#define SDL_SetRenderSDLColour(rend,color)				\
+	SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, color.a)
+
+const SDL_Colour white = { .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0xFF };
+const SDL_Colour black = { .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xFF };
+
+
 int main(void)
 {
 	SDL_Window *win;
@@ -30,17 +37,36 @@ int main(void)
 
 	CHK(SDL_Init(SDL_INIT_VIDEO) == 0);
 	SDL_SetHint("SDL_HINT_RENDER_VSYNC", "1");
-	CHK(SDL_CreateWindowAndRenderer(win_w, win_h,
-	                                SDL_WINDOW_RESIZABLE,
-	                                &win, &rend) == 0);
-	SDL_SetWindowTitle(win, "sdl2_picofont fancy example");
+
+	CHK((win = SDL_CreateWindow("sdl2_picofont fancy example",
+	                            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+	                            win_w, win_h, SDL_WINDOW_RESIZABLE)) != NULL);
+	CHK((rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED |
+	                               SDL_RENDERER_TARGETTEXTURE)) != NULL);
+
 	CHK((ctx = FontStartup(rend)) != NULL);
 
 	SDL_RenderSetLogicalSize(rend, win_w, win_h);
 
 	int tex_w, tex_h;
-	tex = FontRenderToTexture(ctx, "I'm a texture!", &tex_w, &tex_h);
-	CHK(tex != NULL);
+	const char *str = "I'm a texture!";
+
+	{
+		FontDrawSize(strlen(str), &tex_w, &tex_h);
+		tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+		                        SDL_TEXTUREACCESS_TARGET, tex_w, tex_h);
+		CHK(tex != NULL);
+	}
+
+	{
+		SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
+		SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+		CHK(SDL_SetRenderTarget(rend, tex) == 0);
+		SDL_SetRenderSDLColour(rend, white);
+		CHK(FontPrintToRenderer(ctx, str, NULL) == 0);
+		SDL_SetRenderSDLColour(rend, black);
+		CHK(SDL_SetRenderTarget(rend, NULL) == 0);
+	}
 
 	/* Make output texture twice the size. */
 	tex_w *= 2;
@@ -92,12 +118,11 @@ int main(void)
 				b.run = 0;
 		}
 
+		SDL_SetRenderSDLColour(rend, black);
 		SDL_RenderClear(rend);
-		CHK(FontPrintToRenderer(ctx, "Hello World!",
-		                        100, 0, 4, 4, colour[1]) == 0);
 
-		CHK(FontPrintToRenderer(ctx, allchars,
-		                        0, 15*4, 1, 1, colour[7]) == 0);
+		SDL_SetRenderSDLColour(rend, white);
+		CHK(FontPrintToRenderer(ctx, allchars, NULL) == 0);
 
 		Uint32 delay = move_delay_ms - (SDL_GetTicks() - last_move_ms);
 		if(delay <= move_delay_ms)

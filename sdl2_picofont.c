@@ -28,11 +28,7 @@
 struct font_ctx_s
 {
 	SDL_Texture *tex;
-	/* FIXME: Don't use renderer. */
 	SDL_Renderer *rend;
-	/* FIXME: Don't use surface. */
-	SDL_Surface *surf;
-	Uint32 format;
 };
 
 font_ctx *FontStartup(SDL_Renderer *renderer)
@@ -40,11 +36,13 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 	const SDL_Colour colours[2] =
 	{
 		{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00 }, // BG
-		{ .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0x00 }  // FG
+		{ .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0xFF }  // FG
 	};
 	SDL_Surface *bmp_surf;
 	font_ctx *ctx = SDL_malloc(sizeof(font_ctx));
-	Uint8 *pixels = SDL_malloc(FONT_BITMAP_SIZE);;
+	Uint8 *pixels = SDL_malloc(FONT_BITMAP_SIZE);
+
+	SDL_assert(renderer != NULL);
 
 	if(ctx == NULL || pixels == NULL)
 	{
@@ -79,22 +77,7 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 		goto err;
 	}
 
-	if(SDL_QueryTexture(ctx->tex, &ctx->format, NULL, NULL, NULL) < 0)
-		ctx->format = PICOFONT_FALLBACK_FORMAT;
-
-	/* Converting to native format used by textures. */
-	ctx->surf = SDL_ConvertSurfaceFormat(bmp_surf, ctx->format, 0);
-	if(ctx->surf == NULL)
-	{
-		SDL_DestroyTexture(ctx->tex);
-		SDL_FreeSurface(bmp_surf);
-		goto err;
-	}
-
-	SDL_SetColorKey(ctx->surf, SDL_TRUE, 0x000000);
-	SDL_UnlockSurface(ctx->surf);
 	ctx->rend = renderer;
-
 	SDL_FreeSurface(bmp_surf);
 
 out:
@@ -107,28 +90,55 @@ err:
 	goto out;
 }
 
-int FontPrintToRenderer(font_ctx *const ctx, const char *text, int x, int y,
-                        const Uint8 width_scale, const Uint8 height_scale,
-                        const SDL_Colour colour)
+void FontDrawSize(const size_t text_len, int *w, int *h)
+{
+	*w = text_len * FONT_CHAR_WIDTH;
+	*h = FONT_CHAR_HEIGHT;
+}
+
+int FontPrintToRenderer(font_ctx *const ctx, const char *text,
+			const SDL_Rect *dstscale)
 {
 	SDL_Rect font_rect, screen_rect;
+	SDL_Rect dst;
+
 	SDL_assert(ctx != NULL);
 	SDL_assert(text != NULL);
+
+	if(dstscale == NULL)
+	{
+		dst.w = 1;
+		dst.h = 1;
+		dst.x = 0;
+		dst.y = 0;
+	}
+	else
+		dst = *dstscale;
 
 	font_rect.w = FONT_CHAR_WIDTH;
 	font_rect.h = FONT_CHAR_HEIGHT;
 
-	screen_rect.w = FONT_CHAR_WIDTH * width_scale;
-	screen_rect.h = FONT_CHAR_HEIGHT * height_scale;
-	screen_rect.x = x;
-	screen_rect.y = y;
+	screen_rect.w = FONT_CHAR_WIDTH * dst.w;
+	screen_rect.h = FONT_CHAR_HEIGHT * dst.h;
+	screen_rect.x = dst.x;
+	screen_rect.y = dst.y;
 
-	SDL_SetTextureColorMod(ctx->tex, colour.r, colour.g, colour.b);
+	{
+		Uint8 r,g,b,a;
+		SDL_GetRenderDrawColor(ctx->rend, &r, &g, &b, &a);
+		SDL_SetTextureColorMod(ctx->tex, r, g, b);
+		SDL_SetTextureAlphaMod(ctx->tex, a);
+	}
 
 	for(; *text; text++)
 	{
-		Uint8 pos = *text - ' ';
+		Uint8 pos;
 		int ret;
+
+		if(*text >= ' ' && *text <= '~')
+			pos = *text - ' ';
+		else
+			pos = '?' - ' ';
 
 		font_rect.x = (pos % FONT_COLUMNS) * FONT_CHAR_WIDTH;
 		font_rect.y = (pos / FONT_COLUMNS) * FONT_CHAR_HEIGHT;
@@ -145,96 +155,8 @@ int FontPrintToRenderer(font_ctx *const ctx, const char *text, int x, int y,
 	return 0;
 }
 
-/* TODO: Create renderer from surface then pass to FontPrintToRenderer(). */
-SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
-                                 int *w, int *h)
-{
-	SDL_Rect font_rect, screen_rect;
-	int w_max;
-	SDL_Surface *render;
-	size_t len = SDL_strlen(text);
-
-	SDL_assert(ctx != NULL);
-	SDL_assert(text != NULL);
-
-	font_rect.w = FONT_CHAR_WIDTH;
-	font_rect.h = FONT_CHAR_HEIGHT;
-
-	screen_rect.w = FONT_CHAR_WIDTH;
-	screen_rect.h = FONT_CHAR_HEIGHT;
-	screen_rect.x = 0;
-	screen_rect.y = 0;
-
-	w_max = len * FONT_CHAR_WIDTH;
-	/* Error if string is too long. */
-	if(w_max < 0)
-	{
-		SDL_SetError("Input string was too long.");
-		return NULL;
-	}
-
-	render = SDL_CreateRGBSurfaceWithFormat(0, w_max, FONT_CHAR_HEIGHT,
-						SDL_BITSPERPIXEL(ctx->format),
-	                                        ctx->format);
-	if(render == NULL)
-		return NULL;
-
-	SDL_SetColorKey(render, SDL_TRUE, 0x000000);
-
-	for(; *text; text++)
-	{
-		Uint8 pos;
-		int ret;
-
-		if(*text >= ' ' && *text <= '~')
-			pos = *text - ' ';
-		else
-			pos = '?' - ' ';
-
-		font_rect.x = (pos % FONT_COLUMNS) * FONT_CHAR_WIDTH;
-		font_rect.y = (pos / FONT_COLUMNS) * FONT_CHAR_HEIGHT;
-
-		ret = SDL_BlitSurface(ctx->surf, &font_rect,
-		                      render, &screen_rect);
-
-		if(ret < 0)
-		{
-			SDL_FreeSurface(render);
-			return NULL;
-		}
-
-		screen_rect.x += FONT_CHAR_WIDTH;
-	}
-
-	if(w != NULL)
-		*w = screen_rect.x;
-
-	if(h != NULL)
-		*h = FONT_CHAR_HEIGHT;
-
-	SDL_assert(*w == w_max);
-
-	return render;
-}
-
-SDL_Texture *FontRenderToTexture(font_ctx *const ctx, const char *text,
-                                 int *w, int *h)
-{
-	SDL_Surface *surf;
-	SDL_Texture *tex;
-
-	surf = FontRenderToSurface(ctx, text, w, h);
-	if(surf == NULL)
-		return NULL;
-
-	tex = SDL_CreateTextureFromSurface(ctx->rend, surf);
-	SDL_FreeSurface(surf);
-	return tex;
-}
-
 void FontExit(font_ctx *ctx)
 {
-	SDL_FreeSurface(ctx->surf);
 	SDL_DestroyTexture(ctx->tex);
 	SDL_free(ctx);
 }
