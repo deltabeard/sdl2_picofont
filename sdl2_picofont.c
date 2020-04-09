@@ -28,7 +28,9 @@
 struct font_ctx_s
 {
 	SDL_Texture *tex;
+	/* FIXME: Don't use renderer. */
 	SDL_Renderer *rend;
+	/* FIXME: Don't use surface. */
 	SDL_Surface *surf;
 	Uint32 format;
 };
@@ -41,8 +43,8 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 		{ .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0x00 }  // FG
 	};
 	SDL_Surface *bmp_surf;
-	font_ctx *ctx = malloc(sizeof(font_ctx));
-	Uint8 *pixels = malloc(FONT_BITMAP_SIZE);;
+	font_ctx *ctx = SDL_malloc(sizeof(font_ctx));
+	Uint8 *pixels = SDL_malloc(FONT_BITMAP_SIZE);;
 
 	if(ctx == NULL || pixels == NULL)
 	{
@@ -50,7 +52,7 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 		goto err;
 	}
 
-	memcpy(pixels, bitmap_font, FONT_BITMAP_SIZE);
+	SDL_memcpy(pixels, bitmap_font, FONT_BITMAP_SIZE);
 	bmp_surf = SDL_CreateRGBSurfaceFrom(pixels,
 	                                    FONT_BITMAP_WIDTH,
 	                                    FONT_BITMAP_HEIGHT,
@@ -96,11 +98,11 @@ font_ctx *FontStartup(SDL_Renderer *renderer)
 	SDL_FreeSurface(bmp_surf);
 
 out:
-	free(pixels);
+	SDL_free(pixels);
 	return ctx;
 
 err:
-	free(ctx);
+	SDL_free(ctx);
 	ctx = NULL;
 	goto out;
 }
@@ -143,13 +145,14 @@ int FontPrintToRenderer(font_ctx *const ctx, const char *text, int x, int y,
 	return 0;
 }
 
+/* TODO: Create renderer from surface then pass to FontPrintToRenderer(). */
 SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
                                  int *w, int *h)
 {
 	SDL_Rect font_rect, screen_rect;
 	int w_max;
 	SDL_Surface *render;
-	size_t len = strlen(text);
+	size_t len = SDL_strlen(text);
 
 	SDL_assert(ctx != NULL);
 	SDL_assert(text != NULL);
@@ -174,7 +177,7 @@ SDL_Surface *FontRenderToSurface(font_ctx *const ctx, const char *text,
 						SDL_BITSPERPIXEL(ctx->format),
 	                                        ctx->format);
 	if(render == NULL)
-		return render;
+		return NULL;
 
 	SDL_SetColorKey(render, SDL_TRUE, 0x000000);
 
@@ -225,6 +228,7 @@ SDL_Texture *FontRenderToTexture(font_ctx *const ctx, const char *text,
 		return NULL;
 
 	tex = SDL_CreateTextureFromSurface(ctx->rend, surf);
+	SDL_FreeSurface(surf);
 	return tex;
 }
 
@@ -232,5 +236,5 @@ void FontExit(font_ctx *ctx)
 {
 	SDL_FreeSurface(ctx->surf);
 	SDL_DestroyTexture(ctx->tex);
-	free(ctx);
+	SDL_free(ctx);
 }
