@@ -1,3 +1,8 @@
+/**
+ * This file is released under the UNLICENSE license, the terms of which are
+ * provided within the LICENSE file.
+ */
+
 #include <SDL2/SDL.h>
 
 #include "sdl2_picofont.h"
@@ -61,6 +66,7 @@ int main(void)
 	{
 		SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 		SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+
 		CHK(SDL_SetRenderTarget(rend, tex) == 0);
 		SDL_SetRenderSDLColour(rend, white);
 		CHK(FontPrintToRenderer(ctx, str, NULL) == 0);

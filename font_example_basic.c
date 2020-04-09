@@ -1,3 +1,8 @@
+/**
+ * This file is released under the UNLICENSE license, the terms of which are
+ * provided within the LICENSE file.
+ */
+
 #include <SDL2/SDL.h>
 #include "sdl2_picofont.h"
 
@@ -10,6 +15,10 @@
 
 #define SDL_SetRenderSDLColour(rend,color)				\
 	SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, color.a)
+
+const SDL_Colour white = { .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0xFF };
+const SDL_Colour black = { .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xFF };
+const SDL_Colour skyblue = { .r = 0x87, .g = 0xCE, .b = 0xEB, .a = 0xFF };
 
 int main(void)
 {
@@ -27,9 +36,6 @@ int main(void)
 
 	while(1)
 	{
-		const SDL_Colour white = { .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0xFF };
-		const SDL_Colour black = { .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xFF };
-		const SDL_Colour skyblue = { .r = 0x87, .g = 0xCE, .b = 0xEB, .a = 0xFF };
 		SDL_Rect dstscale = { .x = 50, .y = 50, .h = 4, .w = 3 };
 
 		while(SDL_PollEvent(&e) != 0)

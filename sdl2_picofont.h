@@ -14,6 +14,18 @@
  */
 
 /**
+ * Basic process of using SDL2_Picofont to draw text onto a renderer:
+ *
+ * ctx = FontStartup(renderer);
+ * FontPrintToRenderer(ctx, "Text to draw", NULL);
+ * FontExit(ctx);
+ *
+ * If your platform supports it, you can set your render target to a texture,
+ * and then call FontPrintToRenderer() to print text to the texture instead.
+ * Use the function FontDrawSize() to ensure that your texture is large enough.
+ */
+
+/**
  * Context required to store the generated texture with the given renderer.
  */
 typedef struct font_ctx_s font_ctx;
