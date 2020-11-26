@@ -21,7 +21,7 @@ const SDL_Colour white = { .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0xFF };
 const SDL_Colour black = { .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xFF };
 
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	SDL_Window *win;
 	SDL_Renderer *rend;

@@ -5,29 +5,26 @@
 
 #pragma once
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
-/**
- * Font to be selected at compile time. Options are:
- * PICOFONT_9x15 (default)
- * PICOFONT_5x8
- */
+#define FONT_CHAR_WIDTH		9
+#define FONT_CHAR_HEIGHT	15
 
-/**
- * Basic process of using SDL2_Picofont to draw text onto a renderer:
- *
- * ctx = FontStartup(renderer);
- * FontPrintToRenderer(ctx, "Text to draw", NULL);
- * FontExit(ctx);
- *
- * If your platform supports it, you can set your render target to a texture,
- * and then call FontPrintToRenderer() to print text to the texture instead.
- * Use the function FontDrawSize() to ensure that your texture is large enough.
- */
+ /**
+  * Basic process of using SDL2_Picofont to draw text onto a renderer:
+  *
+  * ctx = FontStartup(renderer);
+  * FontPrintToRenderer(ctx, "Text to draw", NULL);
+  * FontExit(ctx);
+  *
+  * If your platform supports it, you can set your render target to a texture,
+  * and then call FontPrintToRenderer() to print text to the texture instead.
+  * Use the function FontDrawSize() to ensure that your texture is large enough.
+  */
 
-/**
- * Context required to store the generated texture with the given renderer.
- */
+  /**
+   * Context required to store the generated texture with the given renderer.
+   */
 typedef struct font_ctx_s font_ctx;
 
 /**
@@ -35,7 +32,7 @@ typedef struct font_ctx_s font_ctx;
  * The given renderer must remain valid until after FontExit() is called.
  *
  * \param renderer	Renderer of the window.
- * \return 0 on success, else error. Use SDL_GetError().
+ * \return Font context, else error. Use SDL_GetError().
  */
 font_ctx *FontStartup(SDL_Renderer *renderer);
 
@@ -60,7 +57,7 @@ int FontPrintToRenderer(font_ctx *const ctx, const char *text,
  * \param w		Pointer to store expected width.
  * \param h		Pointer to store expected height.
  */
-void FontDrawSize(const size_t text_len, int *w, int *h);
+void FontDrawSize(const unsigned text_len, unsigned *w, unsigned *h);
 
 /**
  * Deletes font context.
